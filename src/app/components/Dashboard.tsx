@@ -29,6 +29,7 @@ export default function Dashboard() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [username, setUsername] = useState<string>('');
+  const [sortBy, setSortBy] = useState<'priority' | 'deadline'>('priority');
 
   useEffect(() => {
     loadTasks();
@@ -294,27 +295,62 @@ export default function Dashboard() {
     }
   };
 
-  const sortedTasks = [...tasks].sort((a, b) => {
-    // First sort by priority (alta > media > baja)
-    const priorityOrder = { alta: 3, media: 2, baja: 1 };
-    const priorityA = priorityOrder[a.priority || 'media'];
-    const priorityB = priorityOrder[b.priority || 'media'];
-
-    if (priorityA !== priorityB) {
-      return priorityB - priorityA; // Descending order (alta first)
-    }
-
-    // Then sort by deadline/expiry_date
-    const getTaskDate = (task: Task) => {
-      if (task.deadline) return new Date(task.deadline).getTime();
-      if (task.expiry_date) return new Date(`${task.expiry_date}T${task.expiry_time || '00:00'}`).getTime();
-      return Infinity;
+  const isDeadlineNear = (task: Task): boolean => {
+    const now = new Date();
+    const hoursUntilDeadline = (deadline: Date) => {
+      return (deadline.getTime() - now.getTime()) / (1000 * 60 * 60);
     };
 
-    const dateA = getTaskDate(a);
-    const dateB = getTaskDate(b);
+    if (task.deadline) {
+      const deadlineDate = new Date(`${task.deadline}T23:59:59`);
+      const hours = hoursUntilDeadline(deadlineDate);
+      if (hours > 0 && hours <= 24) return true;
+    }
 
-    return dateA - dateB; // Ascending order (nearest first)
+    if (task.expiry_date) {
+      const expiryDate = new Date(`${task.expiry_date}T${task.expiry_time || '23:59'}`);
+      const hours = hoursUntilDeadline(expiryDate);
+      if (hours > 0 && hours <= 24) return true;
+    }
+
+    return false;
+  };
+
+  const sortedTasks = [...tasks].sort((a, b) => {
+    if (sortBy === 'priority') {
+      // Sort by priority first
+      const priorityOrder = { alta: 3, media: 2, baja: 1 };
+      const priorityA = priorityOrder[a.priority || 'media'];
+      const priorityB = priorityOrder[b.priority || 'media'];
+
+      if (priorityA !== priorityB) {
+        return priorityB - priorityA; // Descending order (alta first)
+      }
+
+      // Then sort by deadline/expiry_date
+      const getTaskDate = (task: Task) => {
+        if (task.deadline) return new Date(task.deadline).getTime();
+        if (task.expiry_date) return new Date(`${task.expiry_date}T${task.expiry_time || '00:00'}`).getTime();
+        return Infinity;
+      };
+
+      const dateA = getTaskDate(a);
+      const dateB = getTaskDate(b);
+
+      return dateA - dateB; // Ascending order (nearest first)
+    } else {
+      // Sort by deadline only
+      const getTaskDate = (task: Task) => {
+        if (task.deadline) return new Date(task.deadline).getTime();
+        if (task.expiry_date) return new Date(`${task.expiry_date}T${task.expiry_time || '00:00'}`).getTime();
+        return Infinity;
+      };
+
+      const dateA = getTaskDate(a);
+      const dateB = getTaskDate(b);
+
+      return dateA - dateB; // Ascending order (nearest first)
+    }
   });
 
   const formatDateTime = (date?: string, time?: string) => {
@@ -464,13 +500,41 @@ export default function Dashboard() {
         </div>
 
         <div>
-          <h2 className="text-lg font-semibold mb-4 text-gray-800">Agenda de Tareas</h2>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-lg font-semibold text-gray-800">Agenda de Tareas</h2>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Ordenar por:</span>
+              <div className="flex gap-1 bg-gray-100 p-1 rounded-lg">
+                <button
+                  onClick={() => setSortBy('priority')}
+                  className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                    sortBy === 'priority'
+                      ? 'bg-white text-blue-600 font-semibold shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  🎯 Prioridad
+                </button>
+                <button
+                  onClick={() => setSortBy('deadline')}
+                  className={`px-3 py-1.5 text-sm rounded-md transition-all ${
+                    sortBy === 'deadline'
+                      ? 'bg-white text-blue-600 font-semibold shadow-sm'
+                      : 'text-gray-600 hover:text-gray-800'
+                  }`}
+                >
+                  📅 Plazo
+                </button>
+              </div>
+            </div>
+          </div>
           {tasks.length === 0 ? (
             <p className="text-gray-500 text-center py-8">No hay tareas creadas</p>
           ) : (
             <div className="space-y-3">
               {sortedTasks.map((task, index) => {
                 const isExpired = isTaskExpired(task);
+                const deadlineNear = isDeadlineNear(task);
                 const borderColor = task.status === 'completed'
                   ? 'border-green-500'
                   : isExpired
@@ -486,10 +550,21 @@ export default function Dashboard() {
                   key={task.id}
                   className={`task-card bg-white p-4 rounded-lg shadow-md border-l-4 transition-all hover:shadow-lg hover:-translate-y-1 ${borderColor} ${
                     isExpired && task.status !== 'completed' ? 'bg-red-50' : ''
+                  } ${
+                    deadlineNear && task.status !== 'completed' ? 'deadline-near-pulse' : ''
                   }`}
                   style={{ animationDelay: `${index * 0.1}s` }}
                 >
-                  <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-3">
+                    {/* Priority Indicator Bar */}
+                    <div className={`w-1.5 rounded-full self-stretch ${
+                      task.priority === 'alta'
+                        ? 'bg-red-500'
+                        : task.priority === 'media'
+                          ? 'bg-yellow-500'
+                          : 'bg-green-500'
+                    }`} />
+
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-2 flex-wrap">
                         <h3
@@ -500,12 +575,12 @@ export default function Dashboard() {
                           {task.title}
                         </h3>
                         {task.priority && (
-                          <span className={`text-xs px-2 py-0.5 rounded border font-medium ${getPriorityColor(task.priority)}`}>
+                          <span className={`priority-badge text-xs px-2.5 py-1 rounded-full font-bold ${getPriorityColor(task.priority)}`}>
                             {getPriorityIcon(task.priority)} {task.priority.toUpperCase()}
                           </span>
                         )}
                         <span
-                          className={`text-xs px-2 py-1 rounded-full font-medium ${
+                          className={`text-xs px-2.5 py-1 rounded-full font-medium ${
                             task.status === 'completed'
                               ? 'bg-green-100 text-green-700'
                               : isExpired
@@ -513,8 +588,13 @@ export default function Dashboard() {
                                 : 'bg-yellow-100 text-yellow-700'
                           }`}
                         >
-                          {task.status === 'completed' ? 'Completada' : isExpired ? '⚠️ Vencida' : 'Pendiente'}
+                          {task.status === 'completed' ? '✓ Completada' : isExpired ? '⚠️ Vencida' : '○ Pendiente'}
                         </span>
+                        {deadlineNear && task.status !== 'completed' && !isExpired && (
+                          <span className="urgent-badge text-xs px-2.5 py-1 rounded-full font-bold bg-orange-100 text-orange-700 border border-orange-300">
+                            ⏰ Urgente
+                          </span>
+                        )}
                       </div>
                       <p
                         className={`text-sm mb-2 ${
@@ -523,37 +603,64 @@ export default function Dashboard() {
                       >
                         {task.description}
                       </p>
-                      <div className="flex flex-col gap-1">
-                        {(task.expiry_date || task.expiry_time) && (
-                          <div className={`flex items-center gap-2 text-sm ${
-                            isExpired && task.status !== 'completed' ? 'text-red-600 font-semibold' : 'text-gray-500'
-                          }`}>
-                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                            </svg>
-                            <span className="text-xs">Vencimiento: {formatDateTime(task.expiry_date, task.expiry_time)}</span>
-                          </div>
-                        )}
+                      {/* Deadline Section - More Prominent */}
+                      <div className={`mt-2 p-2.5 rounded-lg ${
+                        isExpired && task.status !== 'completed'
+                          ? 'bg-red-100 border border-red-300'
+                          : deadlineNear && task.status !== 'completed'
+                            ? 'bg-orange-50 border border-orange-200'
+                            : 'bg-gray-50 border border-gray-200'
+                      }`}>
                         {task.deadline && (
-                          <div className={`flex items-center gap-2 text-sm ${
-                            isExpired && task.status !== 'completed' ? 'text-red-600 font-semibold' : 'text-gray-500'
+                          <div className={`flex items-center gap-2 mb-1 ${
+                            isExpired && task.status !== 'completed'
+                              ? 'text-red-700 font-bold'
+                              : deadlineNear && task.status !== 'completed'
+                                ? 'text-orange-700 font-semibold'
+                                : 'text-gray-700'
                           }`}>
                             <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
                             </svg>
-                            <span className="text-xs">Plazo límite: {new Date(task.deadline).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                            <span className="text-sm font-semibold">
+                              {isExpired ? '🔴 ' : deadlineNear ? '🟠 ' : '📅 '}
+                              Plazo: {new Date(task.deadline).toLocaleDateString('es-ES', {
+                                weekday: 'short',
+                                day: 'numeric',
+                                month: 'short',
+                                year: 'numeric'
+                              })}
+                            </span>
+                          </div>
+                        )}
+                        {(task.expiry_date || task.expiry_time) && (
+                          <div className={`flex items-center gap-2 ${
+                            isExpired && task.status !== 'completed'
+                              ? 'text-red-600 font-semibold'
+                              : deadlineNear && task.status !== 'completed'
+                                ? 'text-orange-600 font-medium'
+                                : 'text-gray-600'
+                          }`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-xs">
+                              Vencimiento: {formatDateTime(task.expiry_date, task.expiry_time)}
+                            </span>
                           </div>
                         )}
                         {isExpired && task.status !== 'completed' && (
-                          <div className="mt-1">
-                            <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">
-                              ⚠️ VENCIDA
+                          <div className="mt-2 pt-2 border-t border-red-300">
+                            <span className="vencida-badge text-xs px-3 py-1 rounded-full inline-block">
+                              ⚠️ TAREA VENCIDA
                             </span>
                           </div>
                         )}
                       </div>
                     </div>
-                    <div className="flex flex-col gap-2">
+
+                    {/* Action Buttons */}
+                    <div className="flex flex-col gap-2 ml-auto">
                       <button
                         onClick={() => handleUpdateStatus(task.id, task.status)}
                         className={`button-secondary px-3 py-1.5 text-white text-xs rounded transition-all hover:shadow-md transform hover:-translate-y-0.5 ${
