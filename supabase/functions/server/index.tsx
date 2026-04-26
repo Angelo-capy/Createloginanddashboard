@@ -48,9 +48,34 @@ app.post("/make-server-22886cdc/signup", async (c) => {
       return c.json({ error: error.message }, 400);
     }
 
+    // Store username mapping in kv_store for login by username
+    await kv.set(`username:${username.toLowerCase()}`, { email });
+
     return c.json({ user: data.user });
   } catch (error) {
     console.log(`Unexpected error during signup: ${error.message}`);
+    return c.json({ error: error.message }, 500);
+  }
+});
+
+// Get email by username endpoint
+app.post("/make-server-22886cdc/get-email-by-username", async (c) => {
+  try {
+    const { username } = await c.req.json();
+
+    if (!username) {
+      return c.json({ error: 'Username is required' }, 400);
+    }
+
+    const userData = await kv.get(`username:${username.toLowerCase()}`);
+
+    if (!userData || !userData.email) {
+      return c.json({ error: 'Usuario no encontrado' }, 404);
+    }
+
+    return c.json({ email: userData.email });
+  } catch (error) {
+    console.log(`Error getting email by username: ${error.message}`);
     return c.json({ error: error.message }, 500);
   }
 });
@@ -91,7 +116,7 @@ app.post("/make-server-22886cdc/tasks", async (c) => {
       return c.json({ error: 'Unauthorized' }, 401);
     }
 
-    const { title, description, dueDate, dueTime } = await c.req.json();
+    const { title, description, dueDate, dueTime, priority, deadline } = await c.req.json();
     const taskId = crypto.randomUUID();
     const task = {
       id: taskId,
@@ -101,7 +126,9 @@ app.post("/make-server-22886cdc/tasks", async (c) => {
       userId: user.id,
       createdAt: new Date().toISOString(),
       expiry_date: dueDate || null,
-      expiry_time: dueTime || null
+      expiry_time: dueTime || null,
+      priority: priority || 'media',
+      deadline: deadline || null
     };
 
     await kv.set(`task:${user.id}:${taskId}`, task);

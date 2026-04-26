@@ -329,3 +329,129 @@ textarea:focus {
 .bg-red-gradient {
   background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
 }
+
+/* Username badge elegant styles */
+.username-badge {
+  background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%);
+  color: #1e40af;
+  font-weight: 700;
+  letter-spacing: 0.025em;
+  text-transform: capitalize;
+  box-shadow: 0 2px 8px rgba(59, 130, 246, 0.15);
+  transition: all 0.3s ease;
+}
+
+.username-badge:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.25);
+}
+
+/* Fade in animation for username */
+@keyframes fadeInRight {
+  from {
+    opacity: 0;
+    transform: translateX(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+.username-welcome {
+  animation: fadeInRight 0.5s ease-out;
+}
+
+/* Shimmer effect for username badge */
+@keyframes shimmer {
+  0% {
+    background-position: -100% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.username-shimmer {
+  background: linear-gradient(
+    90deg,
+    #dbeafe 0%,
+    #bfdbfe 25%,
+    #93c5fd 50%,
+    #bfdbfe 75%,
+    #dbeafe 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 3s ease-in-out infinite;
+}
+
+/* Priority badge styles */
+.priority-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+  padding: 2px 8px;
+  border-width: 1px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.priority-badge:hover {
+  transform: scale(1.05);
+}
+
+/* Priority color enhancements */
+.border-red-400 {
+  border-left-width: 4px;
+  border-left-color: #f87171 !important;
+}
+
+.border-yellow-400 {
+  border-left-width: 4px;
+  border-left-color: #fbbf24 !important;
+}
+
+/* Glow effect for high priority tasks */
+@keyframes priorityGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(248, 113, 113, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(248, 113, 113, 0.5);
+  }
+}
+
+.task-card.border-red-400 {
+  animation: fadeInUp 0.5s ease-out, priorityGlow 2s ease-in-out infinite;
+}
+
+/* Deadline warning styles */
+.deadline-warning {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  font-weight: 600;
+}
+
+/* Enhanced vencida badge */
+.vencida-badge {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  font-weight: 700;
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Select dropdown custom styles */
+select {
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%236b7280'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1.5em 1.5em;
+  padding-right: 2.5rem;
+}
+
+select:focus {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%233b82f6'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+}

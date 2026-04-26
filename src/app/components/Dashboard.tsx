@@ -13,6 +13,8 @@ interface Task {
   createdAt: string;
   expiry_date?: string;
   expiry_time?: string;
+  priority?: 'baja' | 'media' | 'alta';
+  deadline?: string;
 }
 
 export default function Dashboard() {
@@ -22,12 +24,27 @@ export default function Dashboard() {
   const [description, setDescription] = useState('');
   const [dueDate, setDueDate] = useState('');
   const [dueTime, setDueTime] = useState('');
+  const [priority, setPriority] = useState<'baja' | 'media' | 'alta'>('media');
+  const [deadline, setDeadline] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+  const [username, setUsername] = useState<string>('');
 
   useEffect(() => {
     loadTasks();
+    loadUserData();
   }, []);
+
+  const loadUserData = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user && user.user_metadata?.username) {
+        setUsername(user.user_metadata.username);
+      }
+    } catch (err: any) {
+      console.log(`Error loading user data: ${err.message}`);
+    }
+  };
 
   const loadTasks = async () => {
     try {
@@ -84,7 +101,7 @@ export default function Dashboard() {
             'Content-Type': 'application/json',
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({ title, description, dueDate, dueTime }),
+          body: JSON.stringify({ title, description, dueDate, dueTime, priority, deadline }),
         }
       );
 
@@ -99,6 +116,8 @@ export default function Dashboard() {
       setDescription('');
       setDueDate('');
       setDueTime('');
+      setPriority('media');
+      setDeadline('');
 
       toast.success('¡Tarea creada exitosamente!', {
         description: `${title} ha sido agregada a tu agenda.`,
@@ -231,21 +250,71 @@ export default function Dashboard() {
     navigate('/');
   };
 
-  const isTaskExpired = (expiryDate?: string, expiryTime?: string): boolean => {
-    if (!expiryDate) return false;
+  const isTaskExpired = (task: Task): boolean => {
     const now = new Date();
-    const taskDeadline = new Date(`${expiryDate}T${expiryTime || '23:59'}`);
-    return now > taskDeadline;
+
+    // Check deadline first
+    if (task.deadline) {
+      const deadlineDate = new Date(`${task.deadline}T23:59:59`);
+      if (now > deadlineDate) return true;
+    }
+
+    // Check expiry_date + expiry_time
+    if (task.expiry_date) {
+      const taskDeadline = new Date(`${task.expiry_date}T${task.expiry_time || '23:59'}`);
+      if (now > taskDeadline) return true;
+    }
+
+    return false;
+  };
+
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'alta':
+        return 'bg-red-100 text-red-700 border-red-300';
+      case 'media':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-300';
+      case 'baja':
+        return 'bg-green-100 text-green-700 border-green-300';
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-300';
+    }
+  };
+
+  const getPriorityIcon = (priority?: string) => {
+    switch (priority) {
+      case 'alta':
+        return '🔴';
+      case 'media':
+        return '🟡';
+      case 'baja':
+        return '🟢';
+      default:
+        return '⚪';
+    }
   };
 
   const sortedTasks = [...tasks].sort((a, b) => {
-    if (!a.expiry_date && !b.expiry_date) return 0;
-    if (!a.expiry_date) return 1;
-    if (!b.expiry_date) return -1;
+    // First sort by priority (alta > media > baja)
+    const priorityOrder = { alta: 3, media: 2, baja: 1 };
+    const priorityA = priorityOrder[a.priority || 'media'];
+    const priorityB = priorityOrder[b.priority || 'media'];
 
-    const dateA = new Date(`${a.expiry_date}T${a.expiry_time || '00:00'}`);
-    const dateB = new Date(`${b.expiry_date}T${b.expiry_time || '00:00'}`);
-    return dateA.getTime() - dateB.getTime();
+    if (priorityA !== priorityB) {
+      return priorityB - priorityA; // Descending order (alta first)
+    }
+
+    // Then sort by deadline/expiry_date
+    const getTaskDate = (task: Task) => {
+      if (task.deadline) return new Date(task.deadline).getTime();
+      if (task.expiry_date) return new Date(`${task.expiry_date}T${task.expiry_time || '00:00'}`).getTime();
+      return Infinity;
+    };
+
+    const dateA = getTaskDate(a);
+    const dateB = getTaskDate(b);
+
+    return dateA - dateB; // Ascending order (nearest first)
   });
 
   const formatDateTime = (date?: string, time?: string) => {
@@ -263,14 +332,34 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-gray-50">
       <nav className="bg-white shadow-sm border-b border-gray-200">
-        <div className="max-w-6xl mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-xl font-semibold text-gray-800">SecureTask Pro</h1>
-          <button
-            onClick={handleLogout}
-            className="px-4 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-all hover:shadow-md"
-          >
-            Cerrar Sesión
-          </button>
+        <div className="max-w-6xl mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <div className="flex items-center gap-4">
+              <h1 className="text-xl font-semibold text-gray-800">SecureTask Pro</h1>
+              {username && (
+                <div className="hidden md:flex items-center gap-2 username-welcome">
+                  <span className="text-gray-400 text-lg">|</span>
+                  <span className="text-sm text-gray-600 font-medium">Bienvenido,</span>
+                  <span className="username-badge text-sm px-4 py-1.5 rounded-full">
+                    {username}
+                  </span>
+                </div>
+              )}
+            </div>
+            <button
+              onClick={handleLogout}
+              className="px-4 py-2 text-sm bg-gray-600 text-white rounded hover:bg-gray-700 transition-all hover:shadow-md"
+            >
+              Cerrar Sesión
+            </button>
+          </div>
+          {username && (
+            <div className="md:hidden mt-2 username-welcome">
+              <span className="username-badge text-xs px-3 py-1 rounded-full inline-block">
+                👋 {username}
+              </span>
+            </div>
+          )}
         </div>
       </nav>
 
@@ -335,6 +424,35 @@ export default function Dashboard() {
                 />
               </div>
             </div>
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label htmlFor="priority" className="block text-sm font-medium text-gray-700 mb-1">
+                  Prioridad
+                </label>
+                <select
+                  id="priority"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value as 'baja' | 'media' | 'alta')}
+                  className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all bg-white"
+                >
+                  <option value="baja">🟢 Baja</option>
+                  <option value="media">🟡 Media</option>
+                  <option value="alta">🔴 Alta</option>
+                </select>
+              </div>
+              <div>
+                <label htmlFor="deadline" className="block text-sm font-medium text-gray-700 mb-1">
+                  Plazo límite
+                </label>
+                <input
+                  type="date"
+                  id="deadline"
+                  value={deadline}
+                  onChange={(e) => setDeadline(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
+                />
+              </div>
+            </div>
             <button
               type="submit"
               disabled={loading}
@@ -352,12 +470,16 @@ export default function Dashboard() {
           ) : (
             <div className="space-y-3">
               {sortedTasks.map((task, index) => {
-                const isExpired = isTaskExpired(task.expiry_date, task.expiry_time);
+                const isExpired = isTaskExpired(task);
                 const borderColor = task.status === 'completed'
                   ? 'border-green-500'
                   : isExpired
                     ? 'border-red-500'
-                    : 'border-blue-500';
+                    : task.priority === 'alta'
+                      ? 'border-red-400'
+                      : task.priority === 'media'
+                        ? 'border-yellow-400'
+                        : 'border-blue-500';
 
                 return (
                 <div
@@ -377,6 +499,11 @@ export default function Dashboard() {
                         >
                           {task.title}
                         </h3>
+                        {task.priority && (
+                          <span className={`text-xs px-2 py-0.5 rounded border font-medium ${getPriorityColor(task.priority)}`}>
+                            {getPriorityIcon(task.priority)} {task.priority.toUpperCase()}
+                          </span>
+                        )}
                         <span
                           className={`text-xs px-2 py-1 rounded-full font-medium ${
                             task.status === 'completed'
@@ -396,21 +523,35 @@ export default function Dashboard() {
                       >
                         {task.description}
                       </p>
-                      {(task.expiry_date || task.expiry_time) && (
-                        <div className={`flex items-center gap-2 text-sm ${
-                          isExpired && task.status !== 'completed' ? 'text-red-600 font-semibold' : 'text-gray-500'
-                        }`}>
-                          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-                          </svg>
-                          <span>{formatDateTime(task.expiry_date, task.expiry_time)}</span>
-                          {isExpired && task.status !== 'completed' && (
+                      <div className="flex flex-col gap-1">
+                        {(task.expiry_date || task.expiry_time) && (
+                          <div className={`flex items-center gap-2 text-sm ${
+                            isExpired && task.status !== 'completed' ? 'text-red-600 font-semibold' : 'text-gray-500'
+                          }`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                            <span className="text-xs">Vencimiento: {formatDateTime(task.expiry_date, task.expiry_time)}</span>
+                          </div>
+                        )}
+                        {task.deadline && (
+                          <div className={`flex items-center gap-2 text-sm ${
+                            isExpired && task.status !== 'completed' ? 'text-red-600 font-semibold' : 'text-gray-500'
+                          }`}>
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                            </svg>
+                            <span className="text-xs">Plazo límite: {new Date(task.deadline).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+                          </div>
+                        )}
+                        {isExpired && task.status !== 'completed' && (
+                          <div className="mt-1">
                             <span className="text-xs bg-red-600 text-white px-2 py-0.5 rounded-full animate-pulse">
-                              VENCIDA
+                              ⚠️ VENCIDA
                             </span>
-                          )}
-                        </div>
-                      )}
+                          </div>
+                        )}
+                      </div>
                     </div>
                     <div className="flex flex-col gap-2">
                       <button

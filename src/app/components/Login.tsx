@@ -2,10 +2,11 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router';
 import { supabase } from '../lib/supabase';
 import { toast } from 'sonner';
+import { projectId, publicAnonKey } from '../../../utils/supabase/info';
 
 export default function Login() {
   const navigate = useNavigate();
-  const [email, setEmail] = useState('');
+  const [usernameOrEmail, setUsernameOrEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -29,8 +30,37 @@ export default function Login() {
     setLoading(true);
 
     try {
+      let emailToUse = usernameOrEmail;
+
+      // Check if input is an email (contains @) or username
+      const isEmail = usernameOrEmail.includes('@');
+
+      if (!isEmail) {
+        // If it's a username, get the email from backend
+        const emailResponse = await fetch(
+          `https://${projectId}.supabase.co/functions/v1/make-server-22886cdc/get-email-by-username`,
+          {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${publicAnonKey}`,
+            },
+            body: JSON.stringify({ username: usernameOrEmail }),
+          }
+        );
+
+        const emailData = await emailResponse.json();
+
+        if (!emailResponse.ok) {
+          throw new Error(emailData.error || 'Usuario no encontrado');
+        }
+
+        emailToUse = emailData.email;
+      }
+
+      // Now login with the email (either provided directly or obtained from username)
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
-        email,
+        email: emailToUse,
         password,
       });
 
@@ -67,28 +97,30 @@ export default function Login() {
         )}
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="block text-sm text-gray-700 mb-1">
-              Email
+            <label htmlFor="usernameOrEmail" className="block text-sm text-gray-700 mb-1">
+              Username o Email
             </label>
             <input
-              type="email"
-              id="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              type="text"
+              id="usernameOrEmail"
+              value={usernameOrEmail}
+              onChange={(e) => setUsernameOrEmail(e.target.value)}
+              placeholder="Ingresa tu username o email"
+              className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               required
             />
           </div>
           <div>
             <label htmlFor="password" className="block text-sm text-gray-700 mb-1">
-              Password
+              Contraseña
             </label>
             <input
               type="password"
               id="password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="Ingresa tu contraseña"
+              className="w-full px-4 py-2 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
               required
             />
           </div>
