@@ -1,0 +1,331 @@
+/* SecureTask Pro - Advanced Animations & Styles */
+
+/* Fade-in animation for task cards */
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.task-card {
+  animation: fadeInUp 0.5s ease-out forwards;
+}
+
+/* Hover elevation effect for cards */
+.task-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Button hover effects with smooth transitions */
+.button-primary,
+.button-secondary,
+.button-delete {
+  position: relative;
+  overflow: hidden;
+  transition: all 0.3s ease;
+}
+
+.button-primary:hover,
+.button-secondary:hover,
+.button-delete:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+}
+
+.button-primary:active,
+.button-secondary:active,
+.button-delete:active {
+  transform: translateY(0);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+/* Ripple effect on buttons */
+.button-primary::before,
+.button-secondary::before,
+.button-delete::before {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: 0;
+  height: 0;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: translate(-50%, -50%);
+  transition: width 0.6s, height 0.6s;
+}
+
+.button-primary:active::before,
+.button-secondary:active::before,
+.button-delete:active::before {
+  width: 300px;
+  height: 300px;
+}
+
+/* Smooth transitions for task completion */
+.task-card.completing {
+  animation: taskComplete 0.6s ease-out;
+}
+
+@keyframes taskComplete {
+  0% {
+    transform: scale(1);
+    opacity: 1;
+  }
+  50% {
+    transform: scale(1.05);
+    opacity: 0.7;
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
+
+/* Smooth transitions for task deletion */
+.task-card.deleting {
+  animation: taskDelete 0.5s ease-out forwards;
+}
+
+@keyframes taskDelete {
+  0% {
+    opacity: 1;
+    transform: translateX(0) scale(1);
+  }
+  50% {
+    opacity: 0.5;
+    transform: translateX(-20px) scale(0.9);
+  }
+  100% {
+    opacity: 0;
+    transform: translateX(-100px) scale(0.5);
+  }
+}
+
+/* Input focus effects */
+input:focus,
+textarea:focus {
+  border-color: #3b82f6;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  transition: all 0.2s ease;
+}
+
+/* Card border glow on hover */
+.task-card::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  border-radius: 0.5rem;
+  opacity: 0;
+  transition: opacity 0.3s ease;
+  pointer-events: none;
+}
+
+.task-card:hover::after {
+  opacity: 1;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.3);
+}
+
+/* Loading spinner animation */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loading-spinner {
+  animation: spin 1s linear infinite;
+}
+
+/* Pulse animation for status badges */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.7;
+  }
+}
+
+.status-badge {
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Smooth color transitions */
+* {
+  transition: color 0.2s ease, background-color 0.2s ease;
+}
+
+/* Gradient background for completed tasks */
+.completed-task-gradient {
+  background: linear-gradient(135deg, #f0fdf4 0%, #dcfce7 100%);
+}
+
+/* Agenda view timeline effect */
+.agenda-timeline {
+  position: relative;
+  padding-left: 2rem;
+}
+
+.agenda-timeline::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  background: linear-gradient(to bottom, #3b82f6, #8b5cf6);
+}
+
+/* Floating animation for new task button */
+@keyframes float {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+.floating {
+  animation: float 3s ease-in-out infinite;
+}
+
+/* Stagger animation delay for multiple cards */
+.task-card:nth-child(1) { animation-delay: 0.1s; }
+.task-card:nth-child(2) { animation-delay: 0.2s; }
+.task-card:nth-child(3) { animation-delay: 0.3s; }
+.task-card:nth-child(4) { animation-delay: 0.4s; }
+.task-card:nth-child(5) { animation-delay: 0.5s; }
+.task-card:nth-child(n+6) { animation-delay: 0.6s; }
+
+/* Smooth scrollbar styling */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f3f4f6;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #9ca3af;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #6b7280;
+}
+
+/* Error message slide-in animation */
+@keyframes slideInDown {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.error-message {
+  animation: slideInDown 0.4s ease-out;
+}
+
+/* Success feedback animation */
+@keyframes successPulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.7);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+.success-pulse {
+  animation: successPulse 0.6s ease-out;
+}
+
+/* Expired task styles */
+.bg-red-50 {
+  background-color: #fef2f2;
+  border-color: #ef4444 !important;
+}
+
+.border-red-500 {
+  border-color: #ef4444 !important;
+}
+
+/* Expired task glow effect */
+@keyframes expiredGlow {
+  0%, 100% {
+    box-shadow: 0 0 5px rgba(239, 68, 68, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(239, 68, 68, 0.5);
+  }
+}
+
+.task-card.bg-red-50 {
+  animation: fadeInUp 0.5s ease-out, expiredGlow 2s ease-in-out infinite;
+}
+
+/* Pulse animation for expired badge */
+@keyframes pulse {
+  0%, 100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.8;
+    transform: scale(1.05);
+  }
+}
+
+.animate-pulse {
+  animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+/* Shake animation for delete button */
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0) translateY(0);
+  }
+  10%, 30%, 50%, 70%, 90% {
+    transform: translateX(-4px) translateY(-2px);
+  }
+  20%, 40%, 60%, 80% {
+    transform: translateX(4px) translateY(2px);
+  }
+}
+
+.shake-animation {
+  animation: shake 0.5s ease-in-out !important;
+  background-color: #dc2626 !important;
+}
+
+.expired-shake {
+  animation: shake 0.5s ease-in-out;
+}
+
+/* Gradient background for expired tasks */
+.bg-red-gradient {
+  background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+}
